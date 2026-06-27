@@ -1,28 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, UserCheck, Truck, PartyPopper } from 'lucide-react';
+import { CheckCircle2, MapPin, Truck, UserCheck } from 'lucide-react';
 
 const steps = [
-  {
-    icon: MapPin,
-    title: "Post your request",
-    desc: "Tell us the store, pickup address, and when you'd like your parcel delivered."
-  },
-  {
-    icon: UserCheck,
-    title: "A driver accepts",
-    desc: "A verified nearby driver picks up the job and heads to collect your parcel."
-  },
-  {
-    icon: Truck,
-    title: "Parcel collected",
-    desc: "The driver collects your parcel and keeps it safe until your preferred time."
-  },
-  {
-    icon: PartyPopper,
-    title: "Delivered to you",
-    desc: "Your parcel arrives at your door when you're ready. No stress, no rushing."
-  }
+  { icon: MapPin, title: 'Create a pickup', desc: 'Add pickup details, delivery address, parcel reference, and preferred delivery window.' },
+  { icon: UserCheck, title: 'Driver assignment', desc: 'Approved drivers see available jobs and accept work through the platform.' },
+  { icon: Truck, title: 'Collection confirmed', desc: 'The driver updates the delivery status as the parcel moves through the route.' },
+  { icon: CheckCircle2, title: 'Delivery completed', desc: 'Customers receive completion status and can rate the driver after delivery.' }
 ];
 
 export default function HowItWorks() {
@@ -31,11 +15,9 @@ export default function HowItWorks() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-2">How it works</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Four simple steps
-          </h2>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Four controlled service stages</h2>
           <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
-            From request to delivery — we handle everything so you don't have to.
+            A clear workflow for customers, drivers, and administrators.
           </p>
         </div>
 
@@ -50,7 +32,7 @@ export default function HowItWorks() {
               className="relative group"
             >
               <div className="mb-5">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+                <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
                   <step.icon className="h-6 w-6 text-primary group-hover:text-primary-foreground transition-colors" />
                 </div>
                 <span className="absolute top-0 left-12 text-6xl font-extrabold text-muted/50 select-none">
