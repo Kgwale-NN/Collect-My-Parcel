@@ -5,6 +5,7 @@ import { Package, ArrowLeft, MapPin, Clock, User, CheckCircle2, Truck, Navigatio
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import LiveTrackingMap from '@/components/dashboard/LiveTrackingMap';
 
 const STATUS_STEPS = [
   { key: 'requested', label: 'Requested', icon: Package },
@@ -37,6 +38,22 @@ export default function TrackParcel() {
     const id = urlParams.get('id');
     if (id) { setSearch(id); handleSearch(id); }
   }, []);
+
+  useEffect(() => {
+    if (!parcel?.id) return;
+
+    const refreshParcel = async () => {
+      const results = await base44.entities.Parcel.filter({ id: parcel.id }, '-created_date', 1);
+      if (results.length) setParcel(results[0]);
+    };
+
+    const unsub = base44.entities.Parcel.subscribe(refreshParcel);
+    const interval = setInterval(refreshParcel, 10000);
+    return () => {
+      unsub?.();
+      clearInterval(interval);
+    };
+  }, [parcel?.id]);
 
   const handleSearch = async (val) => {
     const query = (val || search).trim();
@@ -148,6 +165,11 @@ export default function TrackParcel() {
                 </div>
               )}
             </div>
+
+            {/* Details */}
+            {['accepted', 'collected', 'in_transit'].includes(parcel.status) && (
+              <LiveTrackingMap parcel={parcel} />
+            )}
 
             {/* Details */}
             <div className="bg-card rounded-2xl border border-border divide-y divide-border">

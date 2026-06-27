@@ -1,9 +1,37 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
 import { Clock, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function DriverPending() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkStatus = async () => {
+      try {
+        const user = await base44.auth.me();
+        if (!mounted) return;
+        if (user?.driver_status === 'approved') {
+          toast.success('You are approved. Welcome to CMP Driver.');
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        base44.auth.redirectToLogin('/driver-pending');
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-card rounded-3xl shadow-xl border border-border p-10 text-center">

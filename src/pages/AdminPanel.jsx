@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { Package, Users, CheckCircle, ArrowLeft, Shield } from 'lucide-react';
+import { Package, Users, CheckCircle, ArrowLeft, Shield, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminDriverCard from '@/components/admin/AdminDriverCard';
 import AdminParcelRow from '@/components/admin/AdminParcelRow';
@@ -47,7 +47,7 @@ export default function AdminPanel() {
       body: `Hi ${user.full_name},\n\nGreat news! Your driver application has been approved. You can now log in and start accepting parcel delivery jobs.\n\nWelcome to the CMP Driver team!\n\nCollect My Parcel`
     });
     toast.success('Driver approved & notified');
-    qc.invalidateQueries(['admin-users']);
+    qc.invalidateQueries({ queryKey: ['admin-users'] });
   };
 
   const handleReject = async (user) => {
@@ -58,13 +58,18 @@ export default function AdminPanel() {
       body: `Hi ${user.full_name},\n\nThank you for applying to be a CMP driver. Unfortunately, we were unable to approve your application at this time.\n\nYou may reapply with updated documents.\n\nCollect My Parcel`
     });
     toast.success('Driver rejected & notified');
-    qc.invalidateQueries(['admin-users']);
+    qc.invalidateQueries({ queryKey: ['admin-users'] });
   };
+
+  const deliveredParcels = parcels.filter(p => p.status === 'delivered');
+  const totalRevenue = deliveredParcels.reduce((sum, parcel) => sum + (Number(parcel.price) || 0), 0);
+  const primaryCurrency = deliveredParcels[0]?.currency || 'ZAR';
 
   const stats = [
     { label: 'Total Parcels', value: parcels.length, icon: Package, color: 'text-primary' },
     { label: 'Active Jobs', value: parcels.filter(p => ['requested','accepted','collected','in_transit'].includes(p.status)).length, icon: Package, color: 'text-amber-500' },
     { label: 'Delivered', value: parcels.filter(p => p.status === 'delivered').length, icon: CheckCircle, color: 'text-green-500' },
+    { label: 'Revenue', value: `${primaryCurrency} ${totalRevenue.toLocaleString()}`, icon: Banknote, color: 'text-emerald-600' },
     { label: 'Pending Drivers', value: pendingDrivers.length, icon: Users, color: 'text-blue-500' },
   ];
 
@@ -91,7 +96,7 @@ export default function AdminPanel() {
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
           {stats.map((s, i) => (
             <Card key={i} className="p-4 border-border/50">
               <s.icon className={`h-5 w-5 ${s.color} mb-2`} />

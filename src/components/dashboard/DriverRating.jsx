@@ -14,27 +14,36 @@ export default function DriverRating({ parcel, onRated }) {
   const handleSubmit = async () => {
     if (!selected) { toast.error('Please select a star rating'); return; }
     setLoading(true);
+    try {
+      await base44.entities.Parcel.update(parcel.id, {
+        driver_rating: selected,
+        driver_rating_comment: comment || undefined
+      });
 
-    // Save rating on parcel
-    await base44.entities.Parcel.update(parcel.id, {
-      driver_rating: selected,
-      driver_rating_comment: comment || undefined
-    });
+      const drivers = await base44.entities.User.filter({ email: parcel.driver_email });
+      if (drivers.length > 0) {
+        const driver = drivers[0];
+        const ratedParcels = await base44.entities.Parcel.filter({ driver_email: parcel.driver_email }, '-created_date', 200);
+        const ratings = ratedParcels
+          .map(p => p.id === parcel.id ? selected : p.driver_rating)
+          .map(Number)
+          .filter(rating => rating >= 1 && rating <= 5);
+        const newRating = ratings.length
+          ? Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 10) / 10
+          : selected;
+        await base44.entities.User.update(driver.id, {
+          rating: newRating,
+          total_ratings: ratings.length
+        });
+      }
 
-    // Update driver's average rating
-    const drivers = await base44.entities.User.filter({ email: parcel.driver_email });
-    if (drivers.length > 0) {
-      const driver = drivers[0];
-      const deliveries = driver.total_deliveries || 1;
-      const currentRating = driver.rating || 5;
-      // Rolling average
-      const newRating = Math.round(((currentRating * (deliveries - 1)) + selected) / deliveries * 10) / 10;
-      await base44.entities.User.update(driver.id, { rating: newRating });
+      toast.success('Thanks for your feedback!');
+      onRated();
+    } catch (error) {
+      toast.error('Could not save your rating. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    toast.success('Thanks for your feedback!');
-    setLoading(false);
-    onRated();
   };
 
   return (

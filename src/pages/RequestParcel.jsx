@@ -13,10 +13,30 @@ import UberAddressInput from '@/components/request/UberAddressInput';
 import RouteMap from '@/components/request/RouteMap';
 import PaymentSection from '@/components/request/PaymentSection';
 import PriceEstimate from '@/components/request/PriceEstimate';
-import { useGoogleMaps } from '@/hooks/useGoogleMaps';
+import { hasGoogleMapsApiKey, useGoogleMaps } from '@/hooks/useGoogleMaps';
 
-const BASE_FEE = 5;
-const RATE_PER_KM = 1.2;
+const BASE_FEE = 90;
+const INCLUDED_KM = 3;
+const RATE_PER_KM = 22;
+const CURRENCY_MULTIPLIERS = { ZAR: 1, USD: 0.055, GBP: 0.043, EUR: 0.051, NGN: 87, KES: 7.1, GHS: 0.68 };
+
+function estimateDistanceKm(start, end) {
+  const toRad = value => (value * Math.PI) / 180;
+  const earthKm = 6371;
+  const dLat = toRad(end.lat - start.lat);
+  const dLng = toRad(end.lng - start.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(start.lat)) * Math.cos(toRad(end.lat)) *
+    Math.sin(dLng / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 1.3;
+}
+
+function calculatePrice(distanceKm, currency) {
+  const billableKm = Math.max(distanceKm - INCLUDED_KM, 0);
+  const zarPrice = BASE_FEE + billableKm * RATE_PER_KM;
+  return Math.round(zarPrice * (CURRENCY_MULTIPLIERS[currency] || 1));
+}
 
 export default function RequestParcel() {
   const navigate = useNavigate();
@@ -26,6 +46,7 @@ export default function RequestParcel() {
   const [user, setUser] = useState(null);
   const [estimating, setEstimating] = useState(false);
   const [estimate, setEstimate] = useState(null);
+  const [estimateError, setEstimateError] = useState('');
   const [pickup, setPickup] = useState(null);    // { address, lat, lng, name }
   const [delivery, setDelivery] = useState(null);
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '', name: '' });
@@ -58,11 +79,13 @@ export default function RequestParcel() {
       setForm(prev => ({ ...prev, store_name: place.name }));
     }
     setEstimate(null);
+    setEstimateError('');
   };
 
   const handleDeliverySelect = (place) => {
     setDelivery(place);
     setEstimate(null);
+    setEstimateError('');
   };
 
   const estimatePrice = async () => {
@@ -71,30 +94,46 @@ export default function RequestParcel() {
       return;
     }
     setEstimating(true);
+    setEstimateError('');
 
-    // Use exact coordinates for accurate distance
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Calculate the driving distance in kilometers between these two GPS coordinates:
-      Pickup: lat=${pickup.lat}, lng=${pickup.lng} (${pickup.address})
-      Delivery: lat=${delivery.lat}, lng=${delivery.lng} (${delivery.address})
-      
-      Return JSON: { "distance_km": number, "duration_minutes": number }
-      Use straight-line distance * 1.3 as driving estimate if unsure.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          distance_km: { type: 'number' },
-          duration_minutes: { type: 'number' }
+    try {
+      // Use exact coordinates for accurate distance when the backend is available.
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Calculate the driving distance in kilometers between these two GPS coordinates:
+        Pickup: lat=${pickup.lat}, lng=${pickup.lng} (${pickup.address})
+        Delivery: lat=${delivery.lat}, lng=${delivery.lng} (${delivery.address})
+
+        Return JSON: { "distance_km": number, "duration_minutes": number }
+        Use straight-line distance * 1.3 as driving estimate if unsure.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            distance_km: { type: 'number' },
+            duration_minutes: { type: 'number' }
+          }
         }
-      }
-    });
+      });
 
-    const distKm = Math.max(result.distance_km || 3, 1);
-    const currencyMultipliers = { ZAR: 18, USD: 1, GBP: 0.79, EUR: 0.93, NGN: 1600, KES: 130, GHS: 15 };
-    const mult = currencyMultipliers[form.currency] || 1;
-    const price = Math.round((BASE_FEE + distKm * RATE_PER_KM) * mult);
-    setEstimate({ distance_km: distKm, duration_minutes: result.duration_minutes, price, feasible: true });
-    setEstimating(false);
+      const distKm = Math.max(Number(result?.distance_km) || estimateDistanceKm(pickup, delivery), 1);
+      setEstimate({
+        distance_km: distKm,
+        duration_minutes: Number(result?.duration_minutes) || Math.round((distKm / 35) * 60),
+        price: calculatePrice(distKm, form.currency),
+        feasible: true
+      });
+    } catch (error) {
+      const distKm = Math.max(estimateDistanceKm(pickup, delivery), 1);
+      setEstimate({
+        distance_km: distKm,
+        duration_minutes: Math.round((distKm / 35) * 60),
+        price: calculatePrice(distKm, form.currency),
+        feasible: true,
+        fallback: true
+      });
+      setEstimateError('Distance service is temporarily unavailable, so this estimate uses GPS coordinates. Final pricing can be confirmed by support.');
+    } finally {
+      setEstimating(false);
+    }
   };
 
   // Auto-estimate when both locations are set
@@ -189,7 +228,11 @@ export default function RequestParcel() {
 
           {/* UBER-STYLE ADDRESS INPUT */}
           <div>
-            {!mapsLoaded ? (
+            {!hasGoogleMapsApiKey() ? (
+              <div className="bg-amber-50 rounded-2xl border border-amber-200 px-4 py-5 text-sm text-amber-800">
+                Google Maps is not configured. Add <strong>VITE_GOOGLE_MAPS_API_KEY</strong> to your environment variables to enable address search and maps.
+              </div>
+            ) : !mapsLoaded ? (
               <div className="bg-white rounded-2xl border border-border shadow-lg px-4 py-5 flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading maps...
               </div>
@@ -253,6 +296,11 @@ export default function RequestParcel() {
             </div>
           )}
           {estimate && !estimating && <PriceEstimate estimate={estimate} currency={form.currency} />}
+          {estimateError && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {estimateError}
+            </div>
+          )}
 
           {/* STEP 3 — Details */}
           <Card className="border-0 shadow-md">

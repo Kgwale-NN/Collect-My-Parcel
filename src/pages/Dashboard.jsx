@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -12,11 +12,13 @@ import AvailabilityToggle from '@/components/driver/AvailabilityToggle';
 import DriverLocationUpdater from '@/components/driver/DriverLocationUpdater';
 import DriverProfileCard from '@/components/dashboard/DriverProfileCard';
 import DriverEarnings from '@/components/dashboard/DriverEarnings';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('all');
   const [selectedParcel, setSelectedParcel] = useState(null);
+  const openJobIdsRef = useRef(new Set());
 
   useEffect(() => {
     base44.auth.me().then(setUser);
@@ -49,9 +51,26 @@ export default function Dashboard() {
   // Real-time updates
   useEffect(() => {
     if (!user?.email) return;
-    const unsub = base44.entities.Parcel.subscribe(() => refetch());
+    const unsub = base44.entities.Parcel.subscribe(async () => {
+      const result = await refetch();
+      if (isDriver && user?.driver_status === 'approved') {
+        const latestOpenJobs = (result.data || []).filter(p => p.status === 'requested');
+        const previousIds = openJobIdsRef.current;
+        const newJobs = latestOpenJobs.filter(p => !previousIds.has(p.id));
+        if (previousIds.size > 0 && newJobs.length > 0) {
+          toast.info(`${newJobs.length} new delivery job${newJobs.length > 1 ? 's' : ''} available`);
+        }
+        openJobIdsRef.current = new Set(latestOpenJobs.map(p => p.id));
+      }
+    });
     return unsub;
-  }, [user?.email, refetch]);
+  }, [isDriver, user?.driver_status, user?.email, refetch]);
+
+  useEffect(() => {
+    if (isDriver && user?.driver_status === 'approved') {
+      openJobIdsRef.current = new Set(parcels.filter(p => p.status === 'requested').map(p => p.id));
+    }
+  }, [isDriver, parcels, user?.driver_status]);
 
   const filteredParcels = tab === 'all'
     ? parcels

@@ -43,3 +43,7 @@ export function useGoogleMaps() {
 
   return loaded;
 }
+
+export function hasGoogleMapsApiKey() {
+  return Boolean(GOOGLE_MAPS_API_KEY);
+}

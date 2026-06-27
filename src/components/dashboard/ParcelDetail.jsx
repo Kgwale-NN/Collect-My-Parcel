@@ -18,9 +18,25 @@ const statusLabels = {
 export default function ParcelDetail({ parcel, isDriver, user, onClose, onUpdate }) {
   const [loading, setLoading] = useState(false);
 
-  const updateParcel = async (changes, message) => {
+  const refreshParcel = async () => {
+    const latest = await base44.entities.Parcel.filter({ id: parcel.id }, '-created_date', 1);
+    return latest[0] || parcel;
+  };
+
+  const updateParcel = async (changes, message, options = {}) => {
     setLoading(true);
     try {
+      const latest = await refreshParcel();
+      if (options.assignedOnly && latest.driver_email !== user?.email) {
+        toast.error('Only the assigned driver can update this delivery.');
+        onUpdate?.();
+        return;
+      }
+      if (options.allowedStatuses && !options.allowedStatuses.includes(latest.status)) {
+        toast.error('This delivery status has already changed.');
+        onUpdate?.();
+        return;
+      }
       await base44.entities.Parcel.update(parcel.id, changes);
       toast.success(message);
       onUpdate?.();
@@ -31,19 +47,37 @@ export default function ParcelDetail({ parcel, isDriver, user, onClose, onUpdate
     }
   };
 
-  const acceptJob = () => updateParcel({
-    status: 'accepted',
-    driver_email: user?.email,
-    driver_name: user?.full_name,
-    driver_phone: user?.phone
-  }, 'Job accepted');
+  const acceptJob = async () => {
+    setLoading(true);
+    try {
+      const latest = await refreshParcel();
+      if (latest.status !== 'requested' || latest.driver_email) {
+        toast.error('Job taken. Another driver accepted this parcel first.');
+        onUpdate?.();
+        return;
+      }
+      await base44.entities.Parcel.update(parcel.id, {
+        status: 'accepted',
+        driver_email: user?.email,
+        driver_name: user?.full_name,
+        driver_phone: user?.phone
+      });
+      toast.success('Job accepted');
+      onUpdate?.();
+    } catch (error) {
+      toast.error('Could not accept this job. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const markCollected = () => updateParcel({ status: 'collected' }, 'Parcel marked as collected');
-  const markInTransit = () => updateParcel({ status: 'in_transit' }, 'Parcel is now in transit');
-  const markDelivered = () => updateParcel({ status: 'delivered', delivered_at: new Date().toISOString() }, 'Parcel delivered');
+  const markCollected = () => updateParcel({ status: 'collected' }, 'Parcel marked as collected', { assignedOnly: true, allowedStatuses: ['accepted'] });
+  const markInTransit = () => updateParcel({ status: 'in_transit' }, 'Parcel is now in transit', { assignedOnly: true, allowedStatuses: ['collected'] });
+  const markDelivered = () => updateParcel({ status: 'delivered', delivered_at: new Date().toISOString() }, 'Parcel delivered', { assignedOnly: true, allowedStatuses: ['in_transit'] });
 
   const canAccept = isDriver && parcel.status === 'requested';
   const isAssignedDriver = isDriver && parcel.driver_email === user?.email;
+  const refundPending = parcel.status === 'cancelled' && parcel.payment_status === 'paid';
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -88,6 +122,9 @@ export default function ParcelDetail({ parcel, isDriver, user, onClose, onUpdate
             <div className="rounded-2xl bg-muted/60 p-3">
               <p className="text-muted-foreground">Payment</p>
               <p className="font-bold capitalize">{parcel.payment_method || 'cash'}</p>
+              {refundPending && (
+                <p className="text-xs font-semibold text-amber-700 mt-1">Refund pending</p>
+              )}
             </div>
           </div>
 
