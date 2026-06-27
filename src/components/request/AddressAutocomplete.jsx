@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 export default function AddressAutocomplete({ label, placeholder, value, onSelect, icon, iconColor = 'text-primary' }) {
   const inputRef = useRef(null);

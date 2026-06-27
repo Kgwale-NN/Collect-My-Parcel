@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Package, ArrowLeft, MapPin, Clock, User, CheckCircle2, Truck, Circle, Navigation } from 'lucide-react';
+import { Package, ArrowLeft, MapPin, Clock, User, CheckCircle2, Truck, Navigation } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

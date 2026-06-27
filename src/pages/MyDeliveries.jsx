@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Package, ArrowLeft, MapPin, Navigation, Clock, Star, ChevronDown, ChevronUp, Plus, Truck } from 'lucide-react';
+import { Package, ArrowLeft, MapPin, Navigation, Clock, Star, Plus, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';

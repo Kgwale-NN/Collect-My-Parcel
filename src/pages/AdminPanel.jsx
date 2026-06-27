@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { Package, Users, CheckCircle, XCircle, Eye, ArrowLeft, Shield } from 'lucide-react';
+import { Package, Users, CheckCircle, ArrowLeft, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminDriverCard from '@/components/admin/AdminDriverCard';
 import AdminParcelRow from '@/components/admin/AdminParcelRow';

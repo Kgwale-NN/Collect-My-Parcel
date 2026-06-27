@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle2, XCircle, Eye, Bike, Phone, MapPin, Loader2, FileText } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, Bike, Phone, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusColors = {

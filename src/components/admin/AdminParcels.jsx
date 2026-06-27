@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Package, MapPin, User, Clock } from 'lucide-react';
+import { Package, MapPin, User } from 'lucide-react';
 
 const statusConfig = {
   requested: { label: 'Requested', color: 'bg-amber-100 text-amber-800 border-amber-200' },
