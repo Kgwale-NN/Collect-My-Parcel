@@ -1,0 +1,122 @@
+{
+  "name": "Parcel",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "pickup_address": {
+      "type": "string"
+    },
+    "delivery_address": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "preferred_delivery_time": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "accepted",
+        "collected",
+        "in_transit",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "requested"
+    },
+    "driver_email": {
+      "type": "string"
+    },
+    "driver_name": {
+      "type": "string"
+    },
+    "driver_lat": {
+      "type": "number"
+    },
+    "driver_lng": {
+      "type": "number"
+    },
+    "driver_last_seen": {
+      "type": "string"
+    },
+    "eta_minutes": {
+      "type": "number"
+    },
+    "parcel_size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "default": "medium"
+    },
+    "price": {
+      "type": "number"
+    },
+    "distance_km": {
+      "type": "number"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "card"
+      ],
+      "default": "cash"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid"
+      ],
+      "default": "pending"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "pickup_lat": {
+      "type": "number"
+    },
+    "pickup_lng": {
+      "type": "number"
+    },
+    "delivery_lat": {
+      "type": "number"
+    },
+    "delivery_lng": {
+      "type": "number"
+    },
+    "driver_rating": {
+      "type": "number"
+    },
+    "driver_rating_comment": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "store_name",
+    "pickup_address",
+    "delivery_address",
+    "customer_email"
+  ]
+}
