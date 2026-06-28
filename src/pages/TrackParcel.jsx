@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import LiveTrackingMap from '@/components/dashboard/LiveTrackingMap';
+import { getDemoParcels, isLocalDemo } from '@/lib/local-demo';
 
 const STATUS_STEPS = [
   { key: 'requested', label: 'Requested', icon: Package },
@@ -61,6 +62,14 @@ export default function TrackParcel() {
     setLoading(true);
     setNotFound(false);
     setParcel(null);
+
+    if (isLocalDemo()) {
+      const found = getDemoParcels().find(p => p.tracking_number === query || p.id === query);
+      if (found) setParcel(found);
+      else setNotFound(true);
+      setLoading(false);
+      return;
+    }
 
     // Try by tracking number first, then by parcel id
     let results = await base44.entities.Parcel.filter({ tracking_number: query }, '-created_date', 1);

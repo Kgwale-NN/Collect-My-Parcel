@@ -13,6 +13,7 @@ import DriverLocationUpdater from '@/components/driver/DriverLocationUpdater';
 import DriverProfileCard from '@/components/dashboard/DriverProfileCard';
 import DriverEarnings from '@/components/dashboard/DriverEarnings';
 import { toast } from 'sonner';
+import { demoUser, getDemoParcels, isLocalDemo } from '@/lib/local-demo';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -21,6 +22,10 @@ export default function Dashboard() {
   const openJobIdsRef = useRef(new Set());
 
   useEffect(() => {
+    if (isLocalDemo()) {
+      setUser(demoUser);
+      return;
+    }
     base44.auth.me().then(setUser);
   }, []);
 
@@ -31,6 +36,7 @@ export default function Dashboard() {
   const { data: parcels = [], isLoading, refetch } = useQuery({
     queryKey: ['parcels', user?.email, isDriver, isAdmin],
     queryFn: async () => {
+      if (isLocalDemo()) return getDemoParcels();
       if (isAdmin) return base44.entities.Parcel.list('-created_date', 200);
       if (isDriver) {
         // Drivers see: all unassigned requested jobs + their own jobs
@@ -51,6 +57,7 @@ export default function Dashboard() {
   // Real-time updates
   useEffect(() => {
     if (!user?.email) return;
+    if (isLocalDemo()) return;
     const unsub = base44.entities.Parcel.subscribe(async () => {
       const result = await refetch();
       if (isDriver && user?.driver_status === 'approved') {

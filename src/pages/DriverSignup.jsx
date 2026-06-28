@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Bike, Loader2, Upload, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { demoUser, isLocalDemo, setDemoUser } from '@/lib/local-demo';
 
 export default function DriverSignup() {
   const navigate = useNavigate();
@@ -25,6 +26,11 @@ export default function DriverSignup() {
   });
 
   useEffect(() => {
+    if (isLocalDemo()) {
+      setUser(demoUser);
+      setForm(prev => ({ ...prev, phone: demoUser.phone, city: 'Johannesburg', country: 'South Africa' }));
+      return;
+    }
     base44.auth.me().then(u => {
       setUser(u);
       if (u) setForm(prev => ({
@@ -50,8 +56,26 @@ export default function DriverSignup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.id_document_url) { toast.error('Please upload your ID document'); return; }
+    if (!isLocalDemo() && !form.id_document_url) { toast.error('Please upload your ID document'); return; }
     setLoading(true);
+
+    if (isLocalDemo()) {
+      setDemoUser({
+        ...demoUser,
+        role: 'driver',
+        driver_status: 'pending',
+        phone: form.phone,
+        vehicle_type: form.vehicle_type,
+        address: form.address,
+        city: form.city,
+        country: form.country,
+      });
+      toast.success('Demo driver application submitted.');
+      navigate('/driver-pending');
+      setLoading(false);
+      return;
+    }
+
     await base44.auth.updateMe({
       role: 'driver',
       driver_status: 'pending',

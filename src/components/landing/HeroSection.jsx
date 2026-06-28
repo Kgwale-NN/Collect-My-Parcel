@@ -3,9 +3,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Package, Clock, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { isLocalDemo } from '@/lib/local-demo';
 
 export default function HeroSection() {
   const handleProtectedNav = (path) => {
+    if (isLocalDemo()) {
+      window.location.href = path;
+      return;
+    }
     base44.auth.isAuthenticated().then(auth => {
       if (auth) window.location.href = path;
       else base44.auth.redirectToLogin(path);

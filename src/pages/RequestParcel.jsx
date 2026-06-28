@@ -14,6 +14,7 @@ import RouteMap from '@/components/request/RouteMap';
 import PaymentSection from '@/components/request/PaymentSection';
 import PriceEstimate from '@/components/request/PriceEstimate';
 import { hasGoogleMapsApiKey, useGoogleMaps } from '@/hooks/useGoogleMaps';
+import { demoUser, isLocalDemo, saveDemoParcel } from '@/lib/local-demo';
 
 const BASE_FEE = 90;
 const INCLUDED_KM = 3;
@@ -49,6 +50,7 @@ export default function RequestParcel() {
   const [estimateError, setEstimateError] = useState('');
   const [pickup, setPickup] = useState(null);    // { address, lat, lng, name }
   const [delivery, setDelivery] = useState(null);
+  const [manualRoute, setManualRoute] = useState({ pickup: '', delivery: '' });
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '', name: '' });
 
   const [form, setForm] = useState({
@@ -62,6 +64,11 @@ export default function RequestParcel() {
   });
 
   useEffect(() => {
+    if (isLocalDemo()) {
+      setUser(demoUser);
+      setForm(prev => ({ ...prev, customer_phone: demoUser.phone }));
+      return;
+    }
     base44.auth.me().then(u => {
       setUser(u);
       if (u?.phone) setForm(prev => ({ ...prev, customer_phone: u.phone }));
@@ -136,6 +143,25 @@ export default function RequestParcel() {
     }
   };
 
+  const applyManualRoute = () => {
+    if (!manualRoute.pickup.trim() || !manualRoute.delivery.trim()) {
+      toast.error('Enter both pickup and delivery addresses');
+      return;
+    }
+    setPickup({
+      address: manualRoute.pickup.trim(),
+      lat: -26.1087,
+      lng: 28.0567,
+      name: manualRoute.pickup.trim()
+    });
+    setDelivery({
+      address: manualRoute.delivery.trim(),
+      lat: -26.1467,
+      lng: 28.0436,
+      name: manualRoute.delivery.trim()
+    });
+  };
+
   // Auto-estimate when both locations are set
   useEffect(() => {
     if (pickup && delivery) estimatePrice();
@@ -155,6 +181,34 @@ export default function RequestParcel() {
     }
 
     setLoading(true);
+
+    if (isLocalDemo()) {
+      saveDemoParcel({
+        store_name: form.store_name,
+        tracking_number: form.tracking_number || undefined,
+        pickup_address: pickup.address,
+        pickup_lat: pickup.lat,
+        pickup_lng: pickup.lng,
+        delivery_address: delivery.address,
+        delivery_lat: delivery.lat,
+        delivery_lng: delivery.lng,
+        customer_name: user?.full_name || demoUser.full_name,
+        customer_email: user?.email || demoUser.email,
+        customer_phone: form.customer_phone || demoUser.phone,
+        notes: form.notes || '',
+        preferred_delivery_time: form.preferred_delivery_time || '',
+        payment_method: form.payment_method,
+        currency: form.currency,
+        status: 'requested',
+        price: estimate.price,
+        distance_km: estimate.distance_km,
+        payment_status: form.payment_method === 'card' ? 'paid' : 'pending'
+      });
+      toast.success('Demo request created. Driver marketplace flow is ready to preview.');
+      setLoading(false);
+      navigate('/dashboard');
+      return;
+    }
 
     await base44.entities.Parcel.create({
       store_name: form.store_name,
@@ -229,8 +283,29 @@ export default function RequestParcel() {
           {/* UBER-STYLE ADDRESS INPUT */}
           <div>
             {!hasGoogleMapsApiKey() ? (
-              <div className="bg-amber-50 rounded-2xl border border-amber-200 px-4 py-5 text-sm text-amber-800">
-                Google Maps is not configured. Add <strong>VITE_GOOGLE_MAPS_API_KEY</strong> to your environment variables to enable address search and maps.
+              <div className="bg-white rounded-2xl border border-border shadow-md px-4 py-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-sm">Route details</p>
+                  <p className="text-xs text-muted-foreground">Google Maps can be connected later. For local preview, enter addresses manually.</p>
+                </div>
+                <Input
+                  placeholder="Pickup address or depot"
+                  value={manualRoute.pickup}
+                  onChange={(e) => setManualRoute(prev => ({ ...prev, pickup: e.target.value }))}
+                />
+                <Input
+                  placeholder="Delivery address"
+                  value={manualRoute.delivery}
+                  onChange={(e) => setManualRoute(prev => ({ ...prev, delivery: e.target.value }))}
+                />
+                <Button type="button" variant="outline" className="w-full rounded-md" onClick={applyManualRoute}>
+                  Use these addresses
+                </Button>
+                {pickup && delivery && (
+                  <div className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                    Route selected: {pickup.address} to {delivery.address}
+                  </div>
+                )}
               </div>
             ) : !mapsLoaded ? (
               <div className="bg-white rounded-2xl border border-border shadow-lg px-4 py-5 flex items-center gap-2 text-sm text-muted-foreground">
